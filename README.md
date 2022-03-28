@@ -3,11 +3,11 @@
 ### server:
 >***g++ -Wall -o server server.cpp -lpthread***
 >
->***./ser***
+>***./server***
 >
->***./ser --opt_serv_1***
+>***./server --opt_serv_1***
 >
->***./ser --opt_serv_2***
+>***./server --opt_serv_2***
 
 ### client:
 >***g++ -Wall -o client client.cpp***              
