@@ -3,7 +3,7 @@
 ### server:
 >***g++ -Wall -o server server.cpp -lpthread***
 >
->***./serv1***
+>***./server --serv1***
 >
 >***./server --serv2***
 >
