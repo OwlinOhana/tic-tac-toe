@@ -1,4 +1,3 @@
-#pragma once
 #include <iostream>
 #include <vector>
 #include <set>
@@ -200,123 +199,130 @@ void *opt_server_handler(void *socks)
     else if(!(new_clients.size() % 2))
         other_sock = curr_sock - 1;
 
-    if(!recv(curr_sock, &start_game, sizeof(start_game), 0))
-    {
-        send(other_sock, &CLIENT_CRASH_MSG, sizeof(CLIENT_CRASH_MSG), 0);
-        goto opt_serv_fin;
-    }
+    try {  
 
-    if(start_game)
-    {
-        if(!recv(curr_sock, &sign, sizeof(sign), 0))
+        if(!recv(curr_sock, &start_game, sizeof(start_game), 0))
         {
             send(other_sock, &CLIENT_CRASH_MSG, sizeof(CLIENT_CRASH_MSG), 0);
-            goto opt_serv_fin;
+            throw -1;
         }
-    }
 
-    if(!start_game)
-    { 
-        do 
+        if(start_game)
         {
             if(!recv(curr_sock, &sign, sizeof(sign), 0))
             {
                 send(other_sock, &CLIENT_CRASH_MSG, sizeof(CLIENT_CRASH_MSG), 0);
-                goto opt_serv_fin;
-            }
-
-            if(sign != 'X' && sign != 'O')
-            {
-                is_avl_sign = false;
-                send(curr_sock, &is_avl_sign, sizeof(is_avl_sign), 0);
-            }
-            else if(!(signs.size() % 2))
-            {
-                is_avl_sign = true;
-                signs.push_back(sign);
-                send(curr_sock, &is_avl_sign, sizeof(is_avl_sign), 0);
-            }
-            else if(signs[signs.size() - 1] == sign)
-            {
-                is_avl_sign = false;
-                send(curr_sock, &is_avl_sign, sizeof(is_avl_sign), 0);
-            }
-            else
-            {
-                is_avl_sign = true;
-                signs.push_back(sign);
-                send(curr_sock, &is_avl_sign, sizeof(is_avl_sign), 0);
+                throw -1;
             }
         }
-        while(!is_avl_sign);
 
-        while(signs.size() % 2) 
-        {
-            sleep(1);
-        }
-
-        bool begin_game = true;
-        send(curr_sock, &begin_game, sizeof(begin_game), 0);
-
-        char not_over = -1;
-        send(curr_sock, &not_over, sizeof(not_over), 0); 
-        
-        if(sign == current_player)
-        {
-            char winner = -1; 
-            send(curr_sock, &winner, sizeof(winner), 0);
-            send(curr_sock, &move, sizeof(move), 0);
-        }
-    }
-
-    while(1) 
-    {    
-        bool is_val_1 = false;
-        bool is_val_2 = false;
-        
-        do 
-        {
-            if(!check_connection(curr_sock, other_sock))
-                goto opt_serv_fin;
-
-            if(!recv(curr_sock, &move, sizeof(move), 0))
+        if(!start_game)
+        { 
+            do 
             {
-                send(other_sock, &CLIENT_CRASH_MSG, sizeof(CLIENT_CRASH_MSG), 0);
-                goto opt_serv_fin;
+                if(!recv(curr_sock, &sign, sizeof(sign), 0))
+                {
+                    send(other_sock, &CLIENT_CRASH_MSG, sizeof(CLIENT_CRASH_MSG), 0);
+                    throw -1;
+                }
+
+                if(sign != 'X' && sign != 'O')
+                {
+                    is_avl_sign = false;
+                    send(curr_sock, &is_avl_sign, sizeof(is_avl_sign), 0);
+                }
+                // else if(!(signs.size() % 2))
+                // {
+                //     is_avl_sign = true;
+                //     signs.push_back(sign);
+                //     send(curr_sock, &is_avl_sign, sizeof(is_avl_sign), 0);
+                // }
+                else if(signs[signs.size() - 1] == sign)
+                {
+                    is_avl_sign = false;
+                    send(curr_sock, &is_avl_sign, sizeof(is_avl_sign), 0);
+                }
+                else
+                {
+                    is_avl_sign = true;
+                    signs.push_back(sign);
+                    send(curr_sock, &is_avl_sign, sizeof(is_avl_sign), 0);
+                }
             }
-             
-            if(move == 0)
-                goto opt_serv_fin;
+            while(!is_avl_sign);
+
+            while(signs.size() % 2) 
+            {
+                sleep(1);
+            }
+
+            bool begin_game = true;
+            send(curr_sock, &begin_game, sizeof(begin_game), 0);
+
+            char not_over = -1;
+            send(curr_sock, &not_over, sizeof(not_over), 0); 
             
-            is_val_1 = border_validate(move);
-            is_val_2 = is_val_1 ? avalible_cell_validate(move) : true;
-
-            send(curr_sock, &is_val_1, sizeof(is_val_1), 0);
-            send(curr_sock, &is_val_2, sizeof(is_val_2), 0);
+            if(sign == current_player)
+            {
+                char winner = -1; 
+                send(curr_sock, &winner, sizeof(winner), 0);
+                send(curr_sock, &move, sizeof(move), 0);
+            }
         }
-        while(!is_val_1 || !is_val_2);
 
-        board[move] = sign;
+        while(1) 
+        {    
+            bool is_val_1 = false;
+            bool is_val_2 = false;
+            
+            do 
+            {
+                if(!check_connection(curr_sock, other_sock))
+                    throw -1;
 
-        char winner = game_over_validate();
-  
-        send(curr_sock, &winner, sizeof(winner), 0);
-        send(other_sock, &winner, sizeof(winner), 0);
-        send(other_sock, &move, sizeof(move), 0);
-         
-        if(new_socks.opt_servs != nullptr)   
-            send_msg_to_listening_server(&new_opt_servs, move, sign, 0);
+                if(!recv(curr_sock, &move, sizeof(move), 0))
+                {
+                    send(other_sock, &CLIENT_CRASH_MSG, sizeof(CLIENT_CRASH_MSG), 0);
+                    throw -1;
+                }
+                
+                if(move == 0)
+                    throw -1;
+                
+                is_val_1 = border_validate(move);
+                is_val_2 = is_val_1 ? avalible_cell_validate(move) : true;
 
-        if(winner != -1)
-            break;
+                send(curr_sock, &is_val_1, sizeof(is_val_1), 0);
+                send(curr_sock, &is_val_2, sizeof(is_val_2), 0);
+            }
+            while(!is_val_1 || !is_val_2);
+
+            board[move] = sign;
+
+            char winner = game_over_validate();
+    
+            send(curr_sock, &winner, sizeof(winner), 0);
+            send(other_sock, &winner, sizeof(winner), 0);
+            send(other_sock, &move, sizeof(move), 0);
+            
+            if(new_socks.opt_servs != nullptr)   
+                send_msg_to_listening_server(&new_opt_servs, move, sign, 0);
+
+            if(winner != -1)
+                break;
+        }
     }
 
-opt_serv_fin:
-    send_msg_to_listening_server(&new_opt_servs, move, sign, -1);
-    
-    init_game_field();
-    
+    catch(int )
+    {
+        send_msg_to_listening_server(&new_opt_servs, move, sign, -1);
+        
+        init_game_field();
+        
+        
+    }
     return 0;
+    
 }
 
 void *main_server_handler(void *socks)
@@ -346,100 +352,104 @@ void *main_server_handler(void *socks)
     else if(!(new_clients.size() % 2))
         other_sock = curr_sock - 1;
     
-    do
-    {
-        if(!recv(curr_sock, &sign, sizeof(sign), 0))
-        {
-            send(other_sock, &CLIENT_CRASH_MSG, sizeof(CLIENT_CRASH_MSG), 0);
-            goto main_serv_fin;
-        }
-        
-        if(sign != 'X' and sign != 'O')
-        {
-            is_avl_sign = false;
-            send(curr_sock, &is_avl_sign, sizeof(is_avl_sign), 0);
-        }
-        else if(!(signs.size() % 2))
-        {
-            is_avl_sign = true;
-            signs.push_back(sign);
-            send(curr_sock, &is_avl_sign, sizeof(is_avl_sign), 0);
-        }
-        else if(signs[signs.size() - 1] == sign)
-        {
-            is_avl_sign = false;
-            send(curr_sock, &is_avl_sign, sizeof(is_avl_sign), 0);
-        }
-        else
-        {
-            is_avl_sign = true;
-            signs.push_back(sign);
-            send(curr_sock, &is_avl_sign, sizeof(is_avl_sign), 0);
-        }
-    }
-    while(!is_avl_sign);
-
-    while(signs.size() % 2)
-    {
-        sleep(1);
-    }
-
-    send(curr_sock, &begin_game, sizeof(begin_game), 0);
-    send(curr_sock, &not_over, sizeof(not_over), 0);
-    
-    if(sign == current_player)
-    {
-        char winner = -1;
-        
-        send(curr_sock, &winner, sizeof(winner), 0);
-        send(curr_sock, &move, sizeof(move), 0);
-    }
-
-    while(1)
-    {
-        bool is_val_1 = false;
-        bool is_val_2 = false;
+    try { 
         do
         {
-            if(!check_connection(curr_sock, other_sock))
-                goto main_serv_fin;
-             
-            if(!recv(curr_sock, &move, sizeof(move), 0))
+            if(!recv(curr_sock, &sign, sizeof(sign), 0))
             {
                 send(other_sock, &CLIENT_CRASH_MSG, sizeof(CLIENT_CRASH_MSG), 0);
-                goto main_serv_fin;
+                throw -1;
             }
-        
-            if(move == 0)
-                goto main_serv_fin;
             
-            is_val_1 = border_validate(move);
-            is_val_2 = is_val_1 ? avalible_cell_validate(move) : true;
-
-            send(curr_sock, &is_val_1, sizeof(is_val_1), 0);
-            send(curr_sock, &is_val_2, sizeof(is_val_2), 0);
+            if(sign != 'X' and sign != 'O')
+            {
+                is_avl_sign = false;
+                send(curr_sock, &is_avl_sign, sizeof(is_avl_sign), 0);
+            }
+            else if(!(signs.size() % 2))
+            {
+                is_avl_sign = true;
+                signs.push_back(sign);
+                send(curr_sock, &is_avl_sign, sizeof(is_avl_sign), 0);
+            }
+            else if(signs[signs.size() - 1] == sign)
+            {
+                is_avl_sign = false;
+                send(curr_sock, &is_avl_sign, sizeof(is_avl_sign), 0);
+            }
+            else
+            {
+                is_avl_sign = true;
+                signs.push_back(sign);
+                send(curr_sock, &is_avl_sign, sizeof(is_avl_sign), 0);
+            }
         }
-        while(!is_val_1 || !is_val_2);
+        while(!is_avl_sign);
 
-        board[move] = sign;
+        while(signs.size() % 2)
+        {
+            sleep(1);
+        }
 
-        char winner = game_over_validate();
-     
-        send(curr_sock, &winner, sizeof(winner), 0);
-        send(other_sock, &winner, sizeof(winner), 0);
-        send(other_sock, &move, sizeof(move), 0);
+        send(curr_sock, &begin_game, sizeof(begin_game), 0);
+        send(curr_sock, &not_over, sizeof(not_over), 0);
+        
+        if(sign == current_player)
+        {
+            char winner = -1;
+            
+            send(curr_sock, &winner, sizeof(winner), 0);
+            send(curr_sock, &move, sizeof(move), 0);
+        }
 
-        send_msg_to_listening_server(&new_opt_servs, move, sign, 0);
+        while(1)
+        {
+            bool is_val_1 = false;
+            bool is_val_2 = false;
+            do
+            {
+                if(!check_connection(curr_sock, other_sock))
+                    throw -1;
+                
+                if(!recv(curr_sock, &move, sizeof(move), 0))
+                {
+                    send(other_sock, &CLIENT_CRASH_MSG, sizeof(CLIENT_CRASH_MSG), 0);
+                    throw -1;
+                }
+            
+                if(move == 0)
+                    throw -1;
+                
+                is_val_1 = border_validate(move);
+                is_val_2 = is_val_1 ? avalible_cell_validate(move) : true;
 
-        if(winner != -1)
-            break;
+                send(curr_sock, &is_val_1, sizeof(is_val_1), 0);
+                send(curr_sock, &is_val_2, sizeof(is_val_2), 0);
+            }
+            while(!is_val_1 || !is_val_2);
+
+            board[move] = sign;
+
+            char winner = game_over_validate();
+        
+            send(curr_sock, &winner, sizeof(winner), 0);
+            send(other_sock, &winner, sizeof(winner), 0);
+            send(other_sock, &move, sizeof(move), 0);
+
+            send_msg_to_listening_server(&new_opt_servs, move, sign, 0);
+
+            if(winner != -1)
+                break;
+        }
     }
 
-main_serv_fin:
-    send_msg_to_listening_server(&new_opt_servs, move, sign, -1);
-    
-    init_game_field();
-    
+    catch(int)
+    {
+        send_msg_to_listening_server(&new_opt_servs, move, sign, -1);
+        
+        init_game_field();
+        
+    }
     return 0;
 }
 
@@ -480,7 +490,7 @@ bool border_validate(int number)
 
 char game_over_validate()
 {   
-     if(board[1] == board[2] && board[1] == board[3] && board[1] != ' ')
+    if(board[1] == board[2] && board[1] == board[3] && board[1] != ' ')
         return board[1];
     else if(board[1] == board[5] && board[1] == board[9] && board[1] != ' ')
         return board[1];
@@ -494,7 +504,7 @@ char game_over_validate()
         return board[3];
     else if(board[7] == board[8] && board[7] == board[9] && board[7] != ' ')
         return board[7];
-    else if(board[3] == board[5] && board[3] == board[6] && board[3] != ' ')
+    else if(board[3] == board[5] && board[3] == board[7] && board[3] != ' ')
         return board[3];
 
     for(int i = 1; i < 10; ++i)
@@ -505,14 +515,10 @@ char game_over_validate()
     return 0;
 }
 
-#include <signal.h>
+
 
 int main(int argc, char const **argv)
-{
-    struct sigaction sa;
-    sa.sa_handler = SIG_IGN;
-    sigaction(SIGPIPE, &sa, NULL);
-    
+{  
     int listener, sock, sock_1;
 
     vector<int> clients;
@@ -522,138 +528,133 @@ int main(int argc, char const **argv)
 
     pthread_t pid;
 
-    switch(argc)
+    string param = argv[1];
+   
+    if (param == "--serv1")
     {
-        case 1:
-            listener = server_socket_settings(SERV_ID, MAIN_PORT);
+        listener = server_socket_settings(SERV_ID, MAIN_PORT);
 
-            while(opt_servs.size() != 2)
+        while(opt_servs.size() != 2)
+        {
+            sock = accept(listener, NULL, NULL);
+                
+            if(sock < 0)
             {
-                sock = accept(listener, NULL, NULL);
-               
-                if(sock < 0)
-                {
-                    perror("accept");
-                    exit(1);
-                }
-
-                opt_servs.push_back(sock);
+                perror("accept");
+                exit(1);
             }
 
-        	while(1)
-            {
-                sock = accept(listener, NULL, NULL);
-               
-                if(sock < 0)
-                {
-                    perror("accept");
-                    exit(1);
-                }
+            opt_servs.push_back(sock);
+        }
 
-                clients.push_back(sock);
+        while(1)
+        {
+            sock = accept(listener, NULL, NULL);
                 
-                socks.clients = &clients;
-                socks.opt_servs = &opt_servs;
-
-                if(pthread_create(&pid, NULL, main_server_handler, (void *)&socks) < 0)
-            	{
-                	perror("could not create thread");
-
-                	exit(2);
-            	}
-
-                pthread_detach(pid);
+            if(sock < 0)
+            {
+                perror("accept");
+                exit(1);
             }
 
-        default:
-            string param = argv[1];
+            clients.push_back(sock);
 
-            if (param == "--opt_serv_1")
+            socks.clients = &clients;
+            socks.opt_servs = &opt_servs;
+
+            if(pthread_create(&pid, NULL, main_server_handler, (void *)&socks) < 0)
             {
-                listener = server_socket_settings(SERV_ID, MAIN_PORT + 1);
-                
-                sock = client_socket_settings(SERV_ID, MAIN_PORT);
-          
-                while(opt_servs.size() != 1)
-                {
-                   sock_1 = accept(listener, NULL, NULL);
-                   
-                    if(sock_1 < 0)
-                    {
-                        perror("accept");
-                        exit(1);
-                    }
+                perror("could not create thread");
 
-                    opt_servs.push_back(sock_1);
-                }
+                exit(2);
+            }
 
-                if(sock != -1)
-                    listen_current_server(sock);
+            pthread_detach(pid);
+        }
+    }
+    else if (param == "--serv2")
+    {
+        listener = server_socket_settings(SERV_ID, MAIN_PORT + 1);
 
-                while(1)
-                {
-                    sock = accept(listener, NULL, NULL);
-                   
-                    if(sock < 0)
-                    {
-                        perror("accept");
-                        exit(1);
-                    }
-
-                    clients.push_back(sock);
-
-                    socks.clients = &clients;
-                    socks.opt_servs = &opt_servs;
+        sock = client_socket_settings(SERV_ID, MAIN_PORT);
+    
+        while(opt_servs.size() != 1)
+        {
+            sock_1 = accept(listener, NULL, NULL);
             
-                    if(pthread_create(&pid, NULL, opt_server_handler, (void *)&socks) < 0)
-                    {
-                        perror("could not create thread");
-
-                        exit(2);
-                    }
-
-                    pthread_detach(pid);
-                }
-            }
-            else if (param == "--opt_serv_2")
+            if(sock_1 < 0)
             {
-                listener = server_socket_settings(SERV_ID, MAIN_PORT + 2);
-                
-                sock = client_socket_settings(SERV_ID, MAIN_PORT);
-                sock_1 = client_socket_settings(SERV_ID, MAIN_PORT + 1);
-                
-                if (sock != -1)
-                    listen_current_server(sock);          
-                
-                if (sock_1 != -1)
-                    listen_current_server(sock_1);
-
-                while(1)
-                {
-                    sock = accept(listener, NULL, NULL);
-                   
-                    if(sock < 0)
-                    {
-                        perror("accept");
-                        exit(1);
-                    }
-
-                    clients.push_back(sock);
-                      
-                    socks.clients = &clients;
-                    socks.opt_servs = nullptr;
-
-                    if(pthread_create(&pid, NULL, opt_server_handler, (void *)&socks) < 0)
-                    {
-                        perror("could not create thread");
-
-                        exit(2);
-                    }
-
-                    pthread_detach(pid);
-                }
+                perror("accept");
+                exit(1);
             }
-    }	
 
+            opt_servs.push_back(sock_1);
+        }
+
+        if(sock != -1)
+            listen_current_server(sock);
+
+        while(1)
+        {
+            sock = accept(listener, NULL, NULL);
+        
+            if(sock < 0)
+            {
+                perror("accept");
+                exit(1);
+            }
+
+            clients.push_back(sock);
+
+            socks.clients = &clients;
+            socks.opt_servs = &opt_servs;
+            
+            if(pthread_create(&pid, NULL, opt_server_handler, (void *)&socks) < 0)
+            {
+                perror("could not create thread");
+
+                exit(2);
+            }
+
+            pthread_detach(pid);
+        }
+    }
+    else if (param == "--serv3")
+    {
+        listener = server_socket_settings(SERV_ID, MAIN_PORT + 2);
+
+        sock = client_socket_settings(SERV_ID, MAIN_PORT);
+        sock_1 = client_socket_settings(SERV_ID, MAIN_PORT + 1);
+
+        if (sock != -1)
+            listen_current_server(sock);  
+
+        if (sock_1 != -1)
+            listen_current_server(sock_1);
+
+        while(1)
+        {
+            sock = accept(listener, NULL, NULL);
+        
+            if(sock < 0)
+            {
+                perror("accept");
+                exit(1);
+            }
+
+            clients.push_back(sock);
+            
+            socks.clients = &clients;
+            socks.opt_servs = nullptr;
+
+            if(pthread_create(&pid, NULL, opt_server_handler, (void *)&socks) < 0)
+            {
+                perror("could not create thread");
+                exit(2);
+            }
+
+            pthread_detach(pid);
+        }
+    }
 	return 0;
 }

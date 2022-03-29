@@ -1,4 +1,4 @@
-#pragma once
+
 #include <iostream>
 #include <cstring>
 #include <unistd.h>
@@ -28,7 +28,7 @@ void print_game_board(void);
 
 
 const char CLIENT_CRASH_MSG = char(0x80);
-
+// char board[10] = {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '};
 char board[10] = {'o', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
 
 int socket_settings(char const *id, uint16_t port)
@@ -81,7 +81,7 @@ void chose_sign(int *sock, char *sign)
 {
     bool is_avl_sign = true;
 
-    for(int i = 0;; ++i)
+    for(int i = 0; ; ++i)
     {
         system("clear");
         cout << " ~ " << "Choose your sign X or O" << " ~ " << endl << endl;
@@ -91,6 +91,7 @@ void chose_sign(int *sock, char *sign)
             if(i)
             {
                 int start_game = 0;
+
                 send(*sock, &start_game, sizeof(start_game), 0);
             }
 
@@ -103,11 +104,14 @@ void chose_sign(int *sock, char *sign)
                     cout << " ~ " << "Choose your sign X or O" << " ~ " << endl << endl;
                     cout << " ~ " << msg << " ~ " << endl;
                 }
-
+                             
                 string buf;
                 cout << "> " << flush;
                 getline(cin, buf);
-                *sign = toupper(buf[0]);
+                *sign = buf[0];
+                
+                *sign = toupper(*sign);
+
                 send(*sock, sign, sizeof(*sign), 0);
 
                 if(!recv(*sock, &is_avl_sign, sizeof(is_avl_sign), 0))
@@ -118,7 +122,7 @@ void chose_sign(int *sock, char *sign)
                     exit(0);
                 }
 
-                if (*sign != 'X' || *sign != 'O')
+                if (*sign != 'X' && *sign != 'O')
                     msg = "Invalid input! Try again";
                 else
                     msg = "This sign has already been choosen";
@@ -232,7 +236,7 @@ int wait_opponent_move(int *sock, char sign)
             }
            
             
-            if((move != 0) || (move!= -1))
+            if((move != 0) && (move!= -1))
                 board[move] = (sign == 'X') ? 'O' : 'X';
 
             system("clear");
@@ -286,7 +290,7 @@ void make_move(int *sock, char sign)
     bool is_val_1 = false;
     bool is_val_2 = false;
    
-    for (int i = 0; ; ++i)
+    for (int i = 0, j = 0; ; ++i, j = 0)
     {
         try
         {
@@ -298,25 +302,42 @@ void make_move(int *sock, char sign)
                 send(*sock, &sign, sizeof(sign), 0);
             }
 
-            string msg = "Enter move number";
+            string msg = "Enter move and column number";
             do 
             {
                 system("clear");
-                cout << " ~ " << "You are " << sign << " player" << " ~ " << endl << endl;
+                cout << "        ~ " << "You are " << sign << " player" << " ~ " << endl << endl;
                 print_game_board();
-                cout << endl << " ~ " << msg << " ~ " << endl;           
+                cout << endl << " ~ " << msg << " ~ " << endl;
 
-                string buf;
-                cout << "> " << flush;
-                getline(cin, buf);
-                move = buf[0] - '0';               
+                if(i)
+                {
+                    if(j)
+                    {
+                        string buf;
+                        cout << "> " << flush;
+                        getline(cin, buf);
+                        move = buf[0] - '0';
+                  
+                    }
+                    ++j;
+                }
+                else
+                {
+                    string buf;
+                    cout << "> " << flush;
+                    getline(cin, buf);
+                    move = buf[0] - '0';
+                   
+                }
             
                 if(!check_server(*sock))
                     throw -1;
 
                 send(*sock, &move, sizeof(move), 0);
+               
             
-                if(move == 0)
+                if(move == 0 )
                 {
                     msg = "Please pick a value between 1 and 9";
                     continue;
