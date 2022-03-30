@@ -13,7 +13,7 @@ using namespace std;
 #define MAIN_PORT 3425
 #define LAST_PORT 3427
 #define SERV_ID "127.0.0.1"
-
+#define DISCONNECTED "Opponent has disconnected from server"
 extern const char CLIENT_CRASH_MSG;
 
 int socket_settings(char const *id, uint16_t port);
@@ -66,7 +66,7 @@ bool check_server(int sock)
 
     if (CLIENT_CRASH_MSG == char(status))
     {
-        cout << "Opponent has disconnected from server" << endl;
+        cout << DISCONNECTED << endl;
         exit(0);
     }
 
@@ -112,7 +112,7 @@ void chose_sign(int *sock, char *sign)
                     throw -1;
                 if (CLIENT_CRASH_MSG == char(is_avl_sign))
                 {
-                    cout << "Opponent has disconnected from server" << endl;
+                    cout << DISCONNECTED << endl;
                     exit(0);
                 }
 
@@ -163,7 +163,7 @@ void wait_opponent_sign(int *sock, char sign)
                     throw -1;
                 if (CLIENT_CRASH_MSG == char(is_avl_sign))
                 {
-                    cout << "Opponent has disconnected from server" << endl;
+                    cout << DISCONNECTED << endl;
                     exit(0);
                 }
             }
@@ -172,7 +172,7 @@ void wait_opponent_sign(int *sock, char sign)
                 throw -1;
             if (CLIENT_CRASH_MSG == char(begin_game))
             {
-                cout << "Opponent has disconnected from server" << endl;
+                cout << DISCONNECTED << endl;
                 exit(0);
             }
 
@@ -218,14 +218,14 @@ int wait_opponent_move(int *sock, char sign)
                 throw -1;
             if (CLIENT_CRASH_MSG == char(winner))
             {
-                cout << "Opponent has disconnected from server" << endl;
+                cout << DISCONNECTED << endl;
                 exit(0);
             }
             if(!recv(*sock, &move, sizeof(move), 0))
                 throw -1;
             if (CLIENT_CRASH_MSG == char(move))
             {
-                cout << "Opponent has disconnected from server" << endl;
+                cout << DISCONNECTED << endl;
                 exit(0);
             }
            
@@ -324,14 +324,14 @@ void make_move(int *sock, char sign)
 
                 if (CLIENT_CRASH_MSG == char(is_val_1))
                 {
-                    cout << "Opponent has disconnected from server" << endl;
+                    cout << DISCONNECTED << endl;
                     exit(0);
                 }
                 if(!recv(*sock, &is_val_2, sizeof(is_val_2), 0))
                     throw -1;
                 if (CLIENT_CRASH_MSG == char(is_val_2))
                 {
-                    cout << "Opponent has disconnected from server" << endl;
+                    cout << DISCONNECTED << endl;
                     exit(0);
                 }
 
@@ -389,7 +389,7 @@ void client_handler(int sock)
         recv(sock, &winner, sizeof(winner), 0);
         if (CLIENT_CRASH_MSG == char(winner))
         {
-            cout << "Opponent has disconnected from server" << endl;
+            cout << DISCONNECTED << endl;
             exit(0);
         }
         
@@ -432,8 +432,7 @@ void print_game_board(void) {
 	cout << "     |     |     " << endl << endl;
 }
 
-int main(int argc, char const **argv)
-{
+int main(int argc, char const **argv) {
 	int sock = socket_settings(SERV_ID, MAIN_PORT);
     client_handler(sock);
     close(sock);
