@@ -81,7 +81,12 @@ int server_socket_settings(char const *id, uint16_t port) { //подключен
     hp = gethostbyname(id);
     
     bcopy(hp->h_addr, &addr.sin_addr, hp->h_length);
-
+    int optval = 1;
+    if ((setsockopt(listener,SOL_SOCKET,SO_REUSEADDR,&optval,sizeof(int))) == -1) {
+            close(listener);
+            perror("ERROR  SWM : Set Socket ReUSED ERROR \n");
+            return NULL;
+    }
     if(::bind(listener, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
         perror("bind");
         exit(2);

@@ -30,10 +30,8 @@ void print_game_board(void);
 const char CLIENT_CRASH_MSG = char(0x80);
 
 char board[10] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
-//char board[10] = {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '};
 
-int socket_settings(char const *id, uint16_t port)
-{
+int socket_settings(char const *id, uint16_t port) {
     struct sockaddr_in addr;
     struct hostent *hp;
 
