@@ -20,7 +20,7 @@ extern const char CLIENT_CRASH_MSG;
 
 typedef struct sockets
 {
-	vector<int> *clients;
+    vector<int> *clients;
     vector<int> *opt_servs;
 } sockets;
 
@@ -50,10 +50,18 @@ void init_game_field()
         board[i] = ' ';
 }
 
+bool validate_sign(char sign) {
+    bool result = true;
+    if (sign != 'X' && sign != 'O')
+        result = false;
+//    else if (!signs.size() % 2)
+//        result = false;
+    else if (find(signs.begin(), signs.end(), sign) != signs.end())
+        result = false;
+    return result;
+}
 
-
-int server_socket_settings(char const *id, uint16_t port)
-{
+int server_socket_settings(char const *id, uint16_t port) { //подключение сервера к сокету
     int listener;
 
     struct sockaddr_in addr;
@@ -61,8 +69,7 @@ int server_socket_settings(char const *id, uint16_t port)
     
     listener = socket(AF_INET, SOCK_STREAM, 0);
 
-    if(listener < 0)
-    {
+    if(listener < 0) {
         perror("socket");
 
         exit(1);
@@ -75,8 +82,7 @@ int server_socket_settings(char const *id, uint16_t port)
     
     bcopy(hp->h_addr, &addr.sin_addr, hp->h_length);
 
-    if(bind(listener, (struct sockaddr *)&addr, sizeof(addr)) < 0)
-    {
+    if(::bind(listener, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
         perror("bind");
         exit(2);
     }
@@ -85,8 +91,7 @@ int server_socket_settings(char const *id, uint16_t port)
     return listener;
 }
 
-int client_socket_settings(char const *id, uint16_t port)
-{
+int client_socket_settings(char const *id, uint16_t port) {
     struct sockaddr_in addr;
     struct hostent *hp;
     
@@ -173,7 +178,7 @@ void listen_current_server(int sock)
 
 
 void *opt_server_handler(void *socks)
-{   
+{
     char sign;
 
     int move = -1;
@@ -216,42 +221,24 @@ void *opt_server_handler(void *socks)
     }
 
     if(!start_game)
-    { 
-        do 
+    {
+        do
         {
             if(!recv(curr_sock, &sign, sizeof(sign), 0))
             {
                 send(other_sock, &CLIENT_CRASH_MSG, sizeof(CLIENT_CRASH_MSG), 0);
                 goto opt_serv_fin;
             }
-
-            if(sign != 'X' && sign != 'O')
-            {
-                is_avl_sign = false;
-                send(curr_sock, &is_avl_sign, sizeof(is_avl_sign), 0);
-            }
-            else if(!(signs.size() % 2))
-            {
-                is_avl_sign = true;
+            
+            is_avl_sign = validate_sign(sign);
+            if (is_avl_sign) {
                 signs.push_back(sign);
-                send(curr_sock, &is_avl_sign, sizeof(is_avl_sign), 0);
             }
-            else if(signs[signs.size() - 1] == sign)
-            {
-                is_avl_sign = false;
-                send(curr_sock, &is_avl_sign, sizeof(is_avl_sign), 0);
-            }
-            else
-            {
-                is_avl_sign = true;
-                signs.push_back(sign);
-                send(curr_sock, &is_avl_sign, sizeof(is_avl_sign), 0);
-            }
-        }
-        while(!is_avl_sign);
+            send(curr_sock, &is_avl_sign, sizeof(is_avl_sign), 0);
+            
+        } while(!is_avl_sign);
 
-        while(signs.size() % 2) 
-        {
+        while(signs.size() % 2) {
             sleep(1);
         }
 
@@ -259,22 +246,22 @@ void *opt_server_handler(void *socks)
         send(curr_sock, &begin_game, sizeof(begin_game), 0);
 
         char not_over = -1;
-        send(curr_sock, &not_over, sizeof(not_over), 0); 
+        send(curr_sock, &not_over, sizeof(not_over), 0);
         
         if(sign == current_player)
         {
-            char winner = -1; 
+            char winner = -1;
             send(curr_sock, &winner, sizeof(winner), 0);
             send(curr_sock, &move, sizeof(move), 0);
         }
     }
 
-    while(1) 
-    {    
+    while(1)
+    {
         bool is_val_1 = false;
         bool is_val_2 = false;
         
-        do 
+        do
         {
             if(!check_connection(curr_sock, other_sock))
                 goto opt_serv_fin;
@@ -294,7 +281,7 @@ void *opt_server_handler(void *socks)
             send(curr_sock, &is_val_1, sizeof(is_val_1), 0);
             send(curr_sock, &is_val_2, sizeof(is_val_2), 0);
         }
-        while(!is_val_1 || !is_val_2);
+        while(!is_val_1 && !is_val_2);
 
         board[move] = sign;
 
@@ -304,7 +291,7 @@ void *opt_server_handler(void *socks)
         send(other_sock, &winner, sizeof(winner), 0);
         send(other_sock, &move, sizeof(move), 0);
          
-        if(new_socks.opt_servs != nullptr)   
+        if(new_socks.opt_servs != nullptr)
             send_msg_to_listening_server(&new_opt_servs, move, sign, 0);
 
         if(winner != -1)
@@ -318,6 +305,8 @@ opt_serv_fin:
     
     return 0;
 }
+
+
 
 void *main_server_handler(void *socks)
 {
@@ -346,49 +335,27 @@ void *main_server_handler(void *socks)
     else if(!(new_clients.size() % 2))
         other_sock = curr_sock - 1;
     
-    do
-    {
-        if(!recv(curr_sock, &sign, sizeof(sign), 0))
-        {
+    do {
+        if(!recv(curr_sock, &sign, sizeof(sign), 0)) {
             send(other_sock, &CLIENT_CRASH_MSG, sizeof(CLIENT_CRASH_MSG), 0);
             goto main_serv_fin;
         }
         
-        if(sign != 'X' and sign != 'O')
-        {
-            is_avl_sign = false;
-            send(curr_sock, &is_avl_sign, sizeof(is_avl_sign), 0);
-        }
-        else if(!(signs.size() % 2))
-        {
-            is_avl_sign = true;
+        is_avl_sign = validate_sign(sign);
+        if (is_avl_sign) {
             signs.push_back(sign);
-            send(curr_sock, &is_avl_sign, sizeof(is_avl_sign), 0);
         }
-        else if(signs[signs.size() - 1] == sign)
-        {
-            is_avl_sign = false;
-            send(curr_sock, &is_avl_sign, sizeof(is_avl_sign), 0);
-        }
-        else
-        {
-            is_avl_sign = true;
-            signs.push_back(sign);
-            send(curr_sock, &is_avl_sign, sizeof(is_avl_sign), 0);
-        }
-    }
-    while(!is_avl_sign);
+        send(curr_sock, &is_avl_sign, sizeof(is_avl_sign), 0);
+    } while(!is_avl_sign);
 
-    while(signs.size() % 2)
-    {
+    while(signs.size() % 2) {
         sleep(1);
     }
 
     send(curr_sock, &begin_game, sizeof(begin_game), 0);
     send(curr_sock, &not_over, sizeof(not_over), 0);
     
-    if(sign == current_player)
-    {
+    if(sign == current_player) {
         char winner = -1;
         
         send(curr_sock, &winner, sizeof(winner), 0);
@@ -399,8 +366,7 @@ void *main_server_handler(void *socks)
     {
         bool is_val_1 = false;
         bool is_val_2 = false;
-        do
-        {
+        do {
             if(!check_connection(curr_sock, other_sock))
                 goto main_serv_fin;
              
@@ -413,13 +379,12 @@ void *main_server_handler(void *socks)
             if(move == 0)
                 goto main_serv_fin;
             
-            is_val_1 = border_validate(move);
-            is_val_2 = is_val_1 ? avalible_cell_validate(move) : true;
+            is_val_1 = border_validate(move); //проверка корректности введенного номера клетки
+            is_val_2 = is_val_1 && avalible_cell_validate(move); //проверка доступности клетки (может поменять на фалс)
 
             send(curr_sock, &is_val_1, sizeof(is_val_1), 0);
             send(curr_sock, &is_val_2, sizeof(is_val_2), 0);
-        }
-        while(!is_val_1 || !is_val_2);
+        } while(!is_val_1 && !is_val_2);
 
         board[move] = sign;
 
@@ -427,7 +392,7 @@ void *main_server_handler(void *socks)
      
         send(curr_sock, &winner, sizeof(winner), 0);
         send(other_sock, &winner, sizeof(winner), 0);
-        send(other_sock, &move, sizeof(move), 0);
+        send(other_sock, &move, sizeof(move), 0); // oao
 
         send_msg_to_listening_server(&new_opt_servs, move, sign, 0);
 
@@ -447,17 +412,17 @@ void send_msg_to_listening_server(vector<int> *new_opt_servs, int move, char sig
 {
     for (int i : *new_opt_servs)
     {
-        if(dead_socks.find(i) == dead_socks.end())
+        if(dead_socks.find(i) == dead_socks.end()) // не найден
         {
             if(check_listening_server(i))
-            {   
+            {
                 if(!flag)
                 {
                     send(i, &move, sizeof(move), 0);
                     send(i, &sign, sizeof(sign), 0);
                 }
                 else
-                    send(i, &flag, sizeof(flag), 0); 
+                    send(i, &flag, sizeof(flag), 0);
             }
         }
     }
@@ -465,50 +430,48 @@ void send_msg_to_listening_server(vector<int> *new_opt_servs, int move, char sig
 
 bool avalible_cell_validate(int move)
 {
-	if(board[move] == 'X' || board[move] == 'O')
-	    return false;
-	return true;
+    if(board[move] == 'X' || board[move] == 'O')
+        return false;
+    return true;
 }
 
 bool border_validate(int number)
 {
-	if(number >= 1 && number <= 9)
-		return true;
-	else
-		return false;
+    if(number >= 1 && number <= 9)
+        return true;
+    else
+        return false;
 }
 
 char game_over_validate()
-{   
-     if(board[1] == board[2] && board[1] == board[3] && board[1] != ' ')
+{
+    if(board[1] == board[2] && board[1] == board[3] && board[1] != ' ' && !isdigit(board[1]))
         return board[1];
-    else if(board[1] == board[5] && board[1] == board[9] && board[1] != ' ')
+    else if(board[1] == board[5] && board[1] == board[9] && board[1] != ' ' && !isdigit(board[1]))
         return board[1];
-    else if(board[1] == board[4] && board[1] == board[7] && board[1] != ' ')
+    else if(board[1] == board[4] && board[1] == board[7] && board[1] != ' ' && !isdigit(board[1]))
         return board[1];
-    else if(board[4] == board[5] && board[4] == board[6] && board[4] != ' ')
+    else if(board[4] == board[5] && board[4] == board[6] && board[4] != ' ' && !isdigit(board[4]))
         return board[4];
-    else if(board[2] == board[5] && board[2] == board[8] && board[2] != ' ')
+    else if(board[2] == board[5] && board[2] == board[8] && board[2] != ' ' && !isdigit(board[2]))
         return board[2];
-    else if(board[3] == board[6] && board[3] == board[9] && board[3] != ' ')
+    else if(board[3] == board[6] && board[3] == board[9] && board[3] != ' ' && !isdigit(board[3]))
         return board[3];
-    else if(board[7] == board[8] && board[7] == board[9] && board[7] != ' ')
+    else if(board[7] == board[8] && board[7] == board[9] && board[7] != ' ' && !isdigit(board[7]))
         return board[7];
-    else if(board[3] == board[5] && board[3] == board[6] && board[3] != ' ')
+    else if(board[3] == board[5] && board[3] == board[7] && board[3] != ' ' && !isdigit(board[3]))
         return board[3];
 
-    for(int i = 1; i < 10; ++i)
-    {
+    for(int i = 1; i < 10; ++i) {
       if(board[i] == ' ')
           return -1;
-    }  
+    }
     return 0;
 }
 
 #include <signal.h>
 
-int main(int argc, char const **argv)
-{
+int main(int argc, char const **argv) {
     struct sigaction sa;
     sa.sa_handler = SIG_IGN;
     sigaction(SIGPIPE, &sa, NULL);
@@ -519,33 +482,27 @@ int main(int argc, char const **argv)
     vector<int> opt_servs;
 
     sockets socks;
-
+    init_game_field();
     pthread_t pid;
 
-    switch(argc)
-    {
+    switch(argc) {
         case 1:
             listener = server_socket_settings(SERV_ID, MAIN_PORT);
 
-            while(opt_servs.size() != 2)
-            {
+            while(opt_servs.size() != 2) {
                 sock = accept(listener, NULL, NULL);
-               
-                if(sock < 0)
-                {
+
+                if(sock < 0) {
                     perror("accept");
                     exit(1);
                 }
 
-                opt_servs.push_back(sock);
+                opt_servs.push_back(sock); //подключаем два сервера
             }
-
-        	while(1)
-            {
+            for(int i = 0; i < 2; i++) {  //поменять на два клиента
                 sock = accept(listener, NULL, NULL);
                
-                if(sock < 0)
-                {
+                if(sock < 0) {
                     perror("accept");
                     exit(1);
                 }
@@ -556,15 +513,17 @@ int main(int argc, char const **argv)
                 socks.opt_servs = &opt_servs;
 
                 if(pthread_create(&pid, NULL, main_server_handler, (void *)&socks) < 0)
-            	{
-                	perror("could not create thread");
+                {
+                    perror("could not create thread");
 
-                	exit(2);
-            	}
+                    exit(2);
+                }
 
                 pthread_detach(pid);
             }
-
+            while (1){
+                sleep(1);
+            }
         default:
             string param = argv[1];
 
@@ -623,7 +582,7 @@ int main(int argc, char const **argv)
                 sock_1 = client_socket_settings(SERV_ID, MAIN_PORT + 1);
                 
                 if (sock != -1)
-                    listen_current_server(sock);          
+                    listen_current_server(sock);
                 
                 if (sock_1 != -1)
                     listen_current_server(sock_1);
@@ -653,7 +612,7 @@ int main(int argc, char const **argv)
                     pthread_detach(pid);
                 }
             }
-    }	
+    }
 
-	return 0;
+    return 0;
 }

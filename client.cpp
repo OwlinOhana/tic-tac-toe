@@ -7,7 +7,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
-
+#include <cstdlib>
 using namespace std;
 
 #define MAIN_PORT 3425
@@ -29,7 +29,8 @@ void print_game_board(void);
 
 const char CLIENT_CRASH_MSG = char(0x80);
 
-char board[10] = {'o', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+char board[10] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+//char board[10] = {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '};
 
 int socket_settings(char const *id, uint16_t port)
 {
@@ -95,8 +96,7 @@ void chose_sign(int *sock, char *sign)
             }
 
             string msg = "";
-            do
-            {
+            do {
                 if(!is_avl_sign)
                 {
                     system("clear");
@@ -299,8 +299,7 @@ void make_move(int *sock, char sign)
             }
 
             string msg = "Enter move number";
-            do 
-            {
+            do {
                 system("clear");
                 cout << " ~ " << "You are " << sign << " player" << " ~ " << endl << endl;
                 print_game_board();
@@ -309,7 +308,7 @@ void make_move(int *sock, char sign)
                 string buf;
                 cout << "> " << flush;
                 getline(cin, buf);
-                move = buf[0] - '0';               
+                move = atoi(buf.c_str());
             
                 if(!check_server(*sock))
                     throw -1;
@@ -415,8 +414,7 @@ void client_handler(int sock)
 }
 
 
-void print_game_board(void)
-{
+void print_game_board(void) {
 	cout << "     |     |     " << endl;
   	cout << "  " << board[1] << "  |  " << board[2] << "  |  " << board[3]
        << endl;
@@ -434,7 +432,6 @@ void print_game_board(void)
 		<< endl;
 
 	cout << "     |     |     " << endl << endl;
-
 }
 
 int main(int argc, char const **argv)
