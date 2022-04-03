@@ -1,4 +1,3 @@
-
 #include <iostream>
 #include <cstring>
 #include <unistd.h>
@@ -7,13 +6,13 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
-
+#include <cstdlib>
 using namespace std;
 
 #define MAIN_PORT 3425
 #define LAST_PORT 3427
 #define SERV_ID "127.0.0.1"
-
+#define DISCONNECTED "Opponent has disconnected from server"
 extern const char CLIENT_CRASH_MSG;
 
 int socket_settings(char const *id, uint16_t port);
@@ -28,11 +27,10 @@ void print_game_board(void);
 
 
 const char CLIENT_CRASH_MSG = char(0x80);
-// char board[10] = {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '};
-char board[10] = {'o', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
 
-int socket_settings(char const *id, uint16_t port)
-{
+char board[10] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+
+int socket_settings(char const *id, uint16_t port) {
     struct sockaddr_in addr;
     struct hostent *hp;
 
@@ -67,7 +65,7 @@ bool check_server(int sock)
 
     if (CLIENT_CRASH_MSG == char(status))
     {
-        cout << "Opponent has disconnected from server" << endl;
+        cout << DISCONNECTED << endl;
         exit(0);
     }
 
@@ -81,7 +79,7 @@ void chose_sign(int *sock, char *sign)
 {
     bool is_avl_sign = true;
 
-    for(int i = 0; ; ++i)
+    for(int i = 0;; ++i)
     {
         system("clear");
         cout << " ~ " << "Choose your sign X or O" << " ~ " << endl << endl;
@@ -91,38 +89,33 @@ void chose_sign(int *sock, char *sign)
             if(i)
             {
                 int start_game = 0;
-
                 send(*sock, &start_game, sizeof(start_game), 0);
             }
 
             string msg = "";
-            do
-            {
+            do {
                 if(!is_avl_sign)
                 {
                     system("clear");
                     cout << " ~ " << "Choose your sign X or O" << " ~ " << endl << endl;
                     cout << " ~ " << msg << " ~ " << endl;
                 }
-                             
+
                 string buf;
                 cout << "> " << flush;
                 getline(cin, buf);
-                *sign = buf[0];
-                
-                *sign = toupper(*sign);
-
+                *sign = toupper(buf[0]);
                 send(*sock, sign, sizeof(*sign), 0);
 
                 if(!recv(*sock, &is_avl_sign, sizeof(is_avl_sign), 0))
                     throw -1;
                 if (CLIENT_CRASH_MSG == char(is_avl_sign))
                 {
-                    cout << "Opponent has disconnected from server" << endl;
+                    cout << DISCONNECTED << endl;
                     exit(0);
                 }
 
-                if (*sign != 'X' && *sign != 'O')
+                if (*sign != 'X' || *sign != 'O')
                     msg = "Invalid input! Try again";
                 else
                     msg = "This sign has already been choosen";
@@ -169,7 +162,7 @@ void wait_opponent_sign(int *sock, char sign)
                     throw -1;
                 if (CLIENT_CRASH_MSG == char(is_avl_sign))
                 {
-                    cout << "Opponent has disconnected from server" << endl;
+                    cout << DISCONNECTED << endl;
                     exit(0);
                 }
             }
@@ -178,7 +171,7 @@ void wait_opponent_sign(int *sock, char sign)
                 throw -1;
             if (CLIENT_CRASH_MSG == char(begin_game))
             {
-                cout << "Opponent has disconnected from server" << endl;
+                cout << DISCONNECTED << endl;
                 exit(0);
             }
 
@@ -224,19 +217,18 @@ int wait_opponent_move(int *sock, char sign)
                 throw -1;
             if (CLIENT_CRASH_MSG == char(winner))
             {
-                cout << "Opponent has disconnected from server" << endl;
+                cout << DISCONNECTED << endl;
                 exit(0);
             }
             if(!recv(*sock, &move, sizeof(move), 0))
                 throw -1;
             if (CLIENT_CRASH_MSG == char(move))
             {
-                cout << "Opponent has disconnected from server" << endl;
+                cout << DISCONNECTED << endl;
                 exit(0);
             }
-           
-            
-            if((move != 0) && (move!= -1))
+                       
+            if((move != 0) || (move!= -1))
                 board[move] = (sign == 'X') ? 'O' : 'X';
 
             system("clear");
@@ -290,7 +282,7 @@ void make_move(int *sock, char sign)
     bool is_val_1 = false;
     bool is_val_2 = false;
    
-    for (int i = 0, j = 0; ; ++i, j = 0)
+    for (int i = 0; ; ++i)
     {
         try
         {
@@ -302,42 +294,25 @@ void make_move(int *sock, char sign)
                 send(*sock, &sign, sizeof(sign), 0);
             }
 
-            string msg = "Enter move and column number";
-            do 
-            {
+            string msg = "Enter move number";
+            do {
                 system("clear");
-                cout << "        ~ " << "You are " << sign << " player" << " ~ " << endl << endl;
+                cout << " ~ " << "You are " << sign << " player" << " ~ " << endl << endl;
                 print_game_board();
-                cout << endl << " ~ " << msg << " ~ " << endl;
+                cout << endl << " ~ " << msg << " ~ " << endl;                         
 
-                if(i)
-                {
-                    if(j)
-                    {
-                        string buf;
-                        cout << "> " << flush;
-                        getline(cin, buf);
-                        move = buf[0] - '0';
-                  
-                    }
-                    ++j;
-                }
-                else
-                {
-                    string buf;
-                    cout << "> " << flush;
-                    getline(cin, buf);
-                    move = buf[0] - '0';
-                   
-                }
+                string buf;
+                cout << "> " << flush;
+                getline(cin, buf);
+                move = atoi(buf.c_str());
             
                 if(!check_server(*sock))
                     throw -1;
 
-                send(*sock, &move, sizeof(move), 0);
-               
+                if (!send(*sock, &move, sizeof(move), 0))
+                    throw -1;
             
-                if(move == 0 )
+                if(move == 0)
                 {
                     msg = "Please pick a value between 1 and 9";
                     continue;
@@ -348,14 +323,14 @@ void make_move(int *sock, char sign)
 
                 if (CLIENT_CRASH_MSG == char(is_val_1))
                 {
-                    cout << "Opponent has disconnected from server" << endl;
+                    cout << DISCONNECTED << endl;
                     exit(0);
                 }
                 if(!recv(*sock, &is_val_2, sizeof(is_val_2), 0))
                     throw -1;
                 if (CLIENT_CRASH_MSG == char(is_val_2))
                 {
-                    cout << "Opponent has disconnected from server" << endl;
+                    cout << DISCONNECTED << endl;
                     exit(0);
                 }
 
@@ -413,7 +388,7 @@ void client_handler(int sock)
         recv(sock, &winner, sizeof(winner), 0);
         if (CLIENT_CRASH_MSG == char(winner))
         {
-            cout << "Opponent has disconnected from server" << endl;
+            cout << DISCONNECTED << endl;
             exit(0);
         }
         
@@ -436,8 +411,7 @@ void client_handler(int sock)
 }
 
 
-void print_game_board(void)
-{
+void print_game_board(void) {
 	cout << "     |     |     " << endl;
   	cout << "  " << board[1] << "  |  " << board[2] << "  |  " << board[3]
        << endl;
@@ -455,11 +429,9 @@ void print_game_board(void)
 		<< endl;
 
 	cout << "     |     |     " << endl << endl;
-
 }
 
-int main(int argc, char const **argv)
-{
+int main(int argc, char const **argv) {
 	int sock = socket_settings(SERV_ID, MAIN_PORT);
     client_handler(sock);
     close(sock);
