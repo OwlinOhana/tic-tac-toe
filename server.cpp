@@ -536,6 +536,7 @@ int main(int argc, char const **argv)
 
         while(opt_servs.size() != 2)
         {
+            
             sock = accept(listener, NULL, NULL);
                 
             if(sock < 0)
