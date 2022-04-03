@@ -269,7 +269,10 @@ void *opt_server_handler(void *socks) {
             send_msg_to_listening_server(&new_opt_servs, move, sign, 0);
 
         if(winner != -1)
+        {
+            fill(new_clients.begin(), new_clients.end(), 0);
             break;
+        }
     }
     return 0;
 }
@@ -285,8 +288,7 @@ void *main_server_handler(void *socks) {
 
     bool begin_game = true;
     bool is_avl_sign = false;
-    
-    init_game_field();
+    cout << "291" << endl;
 
     sockets new_socks = *(sockets *)socks;
 
@@ -294,7 +296,7 @@ void *main_server_handler(void *socks) {
     vector<int> new_opt_servs = *new_socks.opt_servs;
 
     int curr_sock = new_clients[new_clients.size() - 1];
-
+    cout << "300" << endl;
     int other_sock = new_clients.size() % 2 ? curr_sock + 1 : curr_sock - 1;
     
     do {
@@ -317,7 +319,7 @@ void *main_server_handler(void *socks) {
 
     send(curr_sock, &begin_game, sizeof(begin_game), 0);
     send(curr_sock, &not_over, sizeof(not_over), 0);
-    
+    cout << "323" << endl;
     if(sign == current_player) {
         char winner = -1;
         
