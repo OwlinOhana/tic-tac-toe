@@ -294,23 +294,47 @@ void *main_server_handler(void *socks) {
 
     vector<int> new_clients = *new_socks.clients;
     vector<int> new_opt_servs = *new_socks.opt_servs;
-
     int curr_sock = new_clients[new_clients.size() - 1];
-    cout << "300" << endl;
-    int other_sock = new_clients.size() % 2 ? curr_sock + 1 : curr_sock - 1;
-    
+
+    int other_sock;
+
+    if(new_clients.size() % 2)
+        other_sock = curr_sock + 1;
+    else if(!(new_clients.size() % 2))
+        other_sock = curr_sock - 1;
+    cout << "305" << endl;
     do {
+         cout << "307" << endl;
         if(!recv(curr_sock, &sign, sizeof(sign), 0)) {
+            cout << "303" << endl;
             send(other_sock, &CLIENT_CRASH_MSG, sizeof(CLIENT_CRASH_MSG), 0);
+            cout << "304" << endl;
             serv_fin(&new_opt_servs, move, sign, -1);
+            cout << "306" << endl;
             return NULL;
         }
-        
-        is_avl_sign = validate_sign(sign);
-        if (is_avl_sign) {
-            signs.push_back(sign);
+        if(sign != 'X' and sign != 'O')
+        {
+            is_avl_sign = false;
+            send(curr_sock, &is_avl_sign, sizeof(is_avl_sign), 0);
         }
-        send(curr_sock, &is_avl_sign, sizeof(is_avl_sign), 0);
+        else if(!(signs.size() % 2))
+        {
+            is_avl_sign = true;
+            signs.push_back(sign);
+            send(curr_sock, &is_avl_sign, sizeof(is_avl_sign), 0);
+        }
+        else if(signs[signs.size() - 1] == sign)
+        {
+            is_avl_sign = false;
+            send(curr_sock, &is_avl_sign, sizeof(is_avl_sign), 0);
+        }
+        else
+        {
+            is_avl_sign = true;
+            signs.push_back(sign);
+            send(curr_sock, &is_avl_sign, sizeof(is_avl_sign), 0);
+        }
     } while(!is_avl_sign);
 
     while(signs.size() % 2) {

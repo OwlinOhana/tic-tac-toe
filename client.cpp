@@ -18,7 +18,7 @@ extern const char CLIENT_CRASH_MSG;
 int socket_settings(char const *id, uint16_t port);
 bool check_server(int sock);
 int wait_opponent_move(int *sock, char sign);
-void chose_sign(int *sock, char *sign);
+void chose_sign(int *sock, char sign);
 void wait_opponent_sign(int *sock, char sign);
 void make_move(int *sock, char sign);
 void client_handler(int sock);
@@ -75,7 +75,7 @@ bool check_server(int sock)
     return true;
 }
 
-void chose_sign(int *sock, char *sign)
+void chose_sign(int *sock, char sign)
 {
     bool is_avl_sign = true;
 
@@ -104,8 +104,8 @@ void chose_sign(int *sock, char *sign)
                 string buf;
                 cout << "> " << flush;
                 getline(cin, buf);
-                *sign = toupper(buf[0]);
-                send(*sock, sign, sizeof(*sign), 0);
+                sign = toupper(buf[0]);
+                send(*sock, &sign, sizeof(sign), 0);
 
                 if(!recv(*sock, &is_avl_sign, sizeof(is_avl_sign), 0))
                     throw -1;
@@ -115,7 +115,7 @@ void chose_sign(int *sock, char *sign)
                     exit(0);
                 }
 
-                if (*sign != 'X' || *sign != 'O')
+                if (sign != 'X' || sign != 'O')
                     msg = "Invalid input! Try again";
                 else
                     msg = "This sign has already been choosen";
@@ -367,7 +367,7 @@ void make_move(int *sock, char sign)
 void client_handler(int sock)
 {
     char sign;
-    chose_sign(&sock, &sign);
+    chose_sign(&sock, sign);
 
     cout << " ~ " << "Waiting for opponent..." << " ~ " << endl;
    
