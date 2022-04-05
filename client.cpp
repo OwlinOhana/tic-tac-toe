@@ -1,4 +1,3 @@
-//#pragma once
 #include <iostream>
 #include <cstring>
 #include <unistd.h>
@@ -254,21 +253,20 @@ void make_move(int *sock, char sign) {
                 string buf;
                 cout << "> " << flush;
                 getline(cin, buf);
-                signal(SIGPIPE, SIG_IGN);
+                
                 move = atoi(buf.c_str());
-            
                 if(!check_server(*sock)) {
                     connect_to_another_socket(sock);
-                    break;
-                }
-
-
-                send(*sock, &move, sizeof(move), 0);
-            
-                if(move == 0) {
-                    msg = "Please pick a value between 1 and 9";
                     continue;
                 }
+                if(move == 0) {
+                    move = 99;
+                    send(*sock, &move, sizeof(move), 0);
+                    msg = "Please pick a value between 1 and 9";
+                    continue;
+                } else
+                    send(*sock, &move, sizeof(move), 0);
+                
             
                 if(!recv(*sock, &is_val_1, sizeof(is_val_1), 0))
                     throw -1;
@@ -289,8 +287,7 @@ void make_move(int *sock, char sign) {
                 
                 if(!is_val_2)
                     msg = "This move has already been done";
-            }
-            while(!is_val_1 && !is_val_2);
+            } while(!is_val_1 && !is_val_2);
 
             board[move] = sign;
 

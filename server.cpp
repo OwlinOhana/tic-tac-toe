@@ -1,4 +1,3 @@
-//#pragma once
 #include <iostream>
 #include <vector>
 #include <set>
@@ -11,7 +10,7 @@
 #include <netdb.h>
 #include <pthread.h>
 #include <signal.h>
-
+#include <algorithm>
 using namespace std;
 
 #define MAIN_PORT 3425
@@ -68,7 +67,6 @@ int server_socket_settings(char const *id, uint16_t port) { //подключен
 
     if(listener < 0) {
         perror("socket");
-
         exit(1);
     }
 
@@ -168,7 +166,7 @@ void *opt_server_handler(void *socks) {
     int start_game = -1;
 
     int current_player = 'X';
-
+    bool is_avl_sign = false;
     sockets new_socks = *(sockets *)socks;
 
     vector<int> new_clients = *new_socks.clients;
@@ -179,7 +177,7 @@ void *opt_server_handler(void *socks) {
 
     int curr_sock = new_clients[new_clients.size() - 1];
     int other_sock = new_clients.size() % 2 ? curr_sock + 1 : curr_sock - 1;
-    bool is_avl_sign = false;
+    
 
     if(!recv(curr_sock, &start_game, sizeof(start_game), 0)) {
         send(other_sock, &CLIENT_CRASH_MSG, sizeof(CLIENT_CRASH_MSG), 0);
@@ -250,7 +248,7 @@ void *opt_server_handler(void *socks) {
             }
             
             is_val_1 = border_validate(move);
-            is_val_2 = is_val_1 && avalible_cell_validate(move);
+            is_val_2 = is_val_1 == true ? avalible_cell_validate(move) : false;
 
             send(curr_sock, &is_val_1, sizeof(is_val_1), 0);
             send(curr_sock, &is_val_2, sizeof(is_val_2), 0);
@@ -292,7 +290,6 @@ void *main_server_handler(void *socks) {
     vector<int> new_opt_servs = *new_socks.opt_servs;
 
     int curr_sock = new_clients[new_clients.size() - 1];
-
     int other_sock = new_clients.size() % 2 ? curr_sock + 1 : curr_sock - 1;
     
     do {
@@ -342,8 +339,8 @@ void *main_server_handler(void *socks) {
                 return NULL;
             }
             
-            is_val_1 = border_validate(move); //проверка корректности введенного номера клетки
-            is_val_2 = is_val_1 && avalible_cell_validate(move); //проверка доступности клетки (может поменять на фалс)
+            is_val_1 = border_validate(move);
+            is_val_2 = is_val_1 == true ? avalible_cell_validate(move) : false;
 
             send(curr_sock, &is_val_1, sizeof(is_val_1), 0);
             send(curr_sock, &is_val_2, sizeof(is_val_2), 0);
@@ -355,7 +352,7 @@ void *main_server_handler(void *socks) {
      
         send(curr_sock, &winner, sizeof(winner), 0);
         send(other_sock, &winner, sizeof(winner), 0);
-        send(other_sock, &move, sizeof(move), 0); // oao
+        send(other_sock, &move, sizeof(move), 0);
 
         send_msg_to_listening_server(&new_opt_servs, move, sign, 0);
     }
@@ -453,7 +450,7 @@ int main(int argc, char const **argv) {
 
                 opt_servs.push_back(sock); //подключаем два сервера
             }
-            for(int i = 0; i < 2; i++) {  //поменять на два клиента
+            for(int i = 0; i < 2; i++) {
                 sock = accept(listener, NULL, NULL);
                
                 sock_error(sock);
